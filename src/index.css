@@ -1,0 +1,68 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-headline: "Inter", sans-serif;
+  --font-body: "Inter", sans-serif;
+
+  --color-primary: #78350F; /* Warm Brown */
+  --color-primary-container: #FEF3C7;
+  --color-on-primary: #FFFFFF;
+  
+  --color-accent: #D97706; /* Warm Orange */
+  --color-accent-container: #FFEDD5;
+  --color-on-accent-container: #7C2D12;
+
+  --color-background: #FFF7ED;
+  --color-surface: #FFFFFF;
+  --color-on-surface: #451A03;
+  --color-on-surface-variant: #92400E;
+  
+  --color-surface-container: #FFEDD5;
+  --color-surface-container-low: #FFF7ED;
+  --color-surface-container-lowest: #FFFFFF;
+  
+  --color-secondary-container: #FEF3C7;
+  --color-on-secondary-container: #92400E;
+  
+  --color-secondary-fixed: #FFEDD5;
+  --color-on-secondary-fixed-variant: #92400E;
+  
+  --color-primary-fixed: #FEF3C7;
+  --color-on-primary-fixed: #78350F;
+  
+  --color-tertiary-fixed: #FEF3C7;
+  --color-on-tertiary-fixed-variant: #92400E;
+  
+  --color-outline-variant: #E2E8F0;
+  --color-error: #EF4444;
+  --color-error-container: #FEE2E2;
+  --color-on-error-container: #991B1B;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-on-surface font-body antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-headline tracking-tight;
+  }
+}
+
+.business-shadow {
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+
+.business-shadow-lg {
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
