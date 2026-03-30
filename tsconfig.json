@@ -3,14 +3,14 @@
     "target": "ES2022",
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
-    "module": "ESNext",
+    "module": "NodeNext", // 修改：支持现代 Node.js ESM 规则
+    "moduleResolution": "NodeNext", // 修改：允许在导入中使用 .js 扩展名
     "lib": [
       "ES2022",
       "DOM",
       "DOM.Iterable"
     ],
     "skipLibCheck": true,
-    "moduleResolution": "bundler",
     "isolatedModules": true,
     "moduleDetection": "force",
     "allowJs": true,
@@ -20,8 +20,10 @@
         "./*"
       ]
     },
-    "allowImportingTsExtensions": true,
+    "allowImportingTsExtensions": false, // 修改：在使用 NodeNext 时应设为 false
     "noEmit": true,
-    "types": ["vite/client"]
+    "types": [
+      "vite/client"
+    ]
   }
 }
