@@ -1,5 +1,10 @@
 {
   "version": 2,
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "api/lib/**, api/routes/**"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
