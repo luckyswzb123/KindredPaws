@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, PawPrint, FileText, Settings, LogOut } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase.js';
 
 interface SidebarItemProps {
   to: string;
@@ -45,12 +45,12 @@ export default function Sidebar() {
 
       <div className="pt-8 border-t border-outline-variant mt-auto">
         <SidebarItem to="/settings" icon={<Settings size={20} />} label="系统设置" />
-        <button 
+        <button
           onClick={async () => {
             if (confirm('确定要退出管理系统吗？')) {
-               await supabase.auth.signOut();
-               localStorage.removeItem('kp_access_token');
-               window.location.href = '/login';
+              await supabase.auth.signOut();
+              localStorage.removeItem('kp_access_token');
+              window.location.href = '/login';
             }
           }}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-error hover:bg-error/5 transition-all mt-2 group"

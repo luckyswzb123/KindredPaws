@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
-import { supabaseAdmin } from '../lib/supabase';
-import { requireAdminAuth, AuthRequest as AdminRequest } from '../middleware/auth';
+import { supabaseAdmin } from '../lib/supabase.js';
+import { requireAdminAuth, AuthRequest as AdminRequest } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -91,8 +91,8 @@ router.post('/pets', async (req: AdminRequest, res: Response) => {
       .single();
 
     if (error) {
-       console.error('[Admin] Supabase Insert Error:', error);
-       throw error;
+      console.error('[Admin] Supabase Insert Error:', error);
+      throw error;
     }
 
     console.log('[Admin] Pet inserted successfully:', data.id);
@@ -234,17 +234,17 @@ router.patch('/applications/:id/status', async (req: AdminRequest, res: Response
       console.log(`[Admin] Approval confirmed. Offlining pet ${pet.id}...`);
       const { error: petUpdateError } = await supabaseAdmin
         .from('pets')
-        .update({ 
-          status: 'none', 
+        .update({
+          status: 'none',
           description: `[已领养] ${pet.name} 已经找到了温暖家。我们的故事还在继续...`,
           updated_at: new Date().toISOString()
         })
         .eq('id', pet.id);
-      
+
       if (petUpdateError) {
-          console.error('[Admin] Pet offline update failed:', petUpdateError);
+        console.error('[Admin] Pet offline update failed:', petUpdateError);
       }
-        
+
       // Notify user via message center
       await supabaseAdmin.from('messages').insert({
         user_id: app.applicant_id,
@@ -257,9 +257,9 @@ router.patch('/applications/:id/status', async (req: AdminRequest, res: Response
         is_read: false
       });
     } else {
-       console.log('[Admin] Request rejected or pet info missing, skip offline.');
-       // Notify rejection
-       await supabaseAdmin.from('messages').insert({
+      console.log('[Admin] Request rejected or pet info missing, skip offline.');
+      // Notify rejection
+      await supabaseAdmin.from('messages').insert({
         user_id: app.applicant_id,
         sender: '系统管理员',
         subject: `关于领养申请的反馈`,

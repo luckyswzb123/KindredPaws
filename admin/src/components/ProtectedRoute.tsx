@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase.js';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
@@ -15,7 +15,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   useEffect(() => {
     async function checkAuth() {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (session) {
         setAuthenticated(true);
         localStorage.setItem('kp_access_token', session.access_token);
@@ -23,7 +23,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
         setAuthenticated(false);
         localStorage.removeItem('kp_access_token');
       }
-      
+
       setLoading(false);
     }
 

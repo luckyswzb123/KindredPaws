@@ -1,8 +1,8 @@
 import { Router, Response } from 'express';
-import { supabaseAdmin } from '../lib/supabase';
-import { requireAuth, AuthRequest } from '../middleware/auth';
+import { supabaseAdmin } from '../lib/supabase.js';
+import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
-import r2, { BUCKET_NAME, PUBLIC_DOMAIN } from '../lib/r2';
+import r2, { BUCKET_NAME, PUBLIC_DOMAIN } from '../lib/r2.js';
 import crypto from 'crypto';
 
 const router = Router();
@@ -69,11 +69,11 @@ router.put('/', requireAuth, async (req: AuthRequest, res: Response) => {
     // Auto-heal missing profiles by using upsert
     const { data, error } = await supabaseAdmin
       .from('user_profiles')
-      .upsert({ 
-        id: req.userId, 
+      .upsert({
+        id: req.userId,
         email: req.userEmail || '',
         name: name || '用户', // name is NOT NULL in db
-        ...updateData 
+        ...updateData
       })
       .select()
       .single();
@@ -106,7 +106,7 @@ router.post('/upload-avatar', requireAuth, async (req: AuthRequest, res: Respons
     const base64Data = image_base64.replace(/^data:image\/\w+;base64,/, '');
     const buffer = Buffer.from(base64Data, 'base64');
     const ext = image_base64.split(';')[0].split('/')[1] || 'jpg';
-    
+
     // Generate unique name for R2
     const r2FileName = `avatars/${req.userId}_${crypto.randomUUID()}.${ext}`;
 
