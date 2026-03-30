@@ -3,15 +3,15 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 
 // 必须加上 scr/ 路径，且保留 .js 后缀
-import authRoutes from './scr/routes/auth.js';
-import petsRoutes from './scr/routes/pets.js';
-import applicationsRoutes from './scr/routes/applications.js';
-import messagesRoutes from './scr/routes/messages.js';
-import profileRoutes from './scr/routes/profile.js';
-import favoritesRoutes from './scr/routes/favorites.js';
-import chatRoutes from './scr/routes/chat.js';
-import uploadRoutes from './scr/routes/upload.js';
-import adminRoutes from './scr/routes/admin.js';
+import authRoutes from '../scr/routes/auth.js';
+import petsRoutes from '../scr/routes/pets.js';
+import applicationsRoutes from '../scr/routes/applications.js';
+import messagesRoutes from '../scr/routes/messages.js';
+import profileRoutes from '../scr/routes/profile.js';
+import favoritesRoutes from '../scr/routes/favorites.js';
+import chatRoutes from '../scr/routes/chat.js';
+import uploadRoutes from '../scr/routes/upload.js';
+import adminRoutes from '../scr/routes/admin.js';
 
 
 
