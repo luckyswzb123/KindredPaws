@@ -265,7 +265,7 @@ router.patch('/:id/status', requireAuth, async (req: AuthRequest, res: Response)
       return res.status(404).json({ success: false, error: '申请记录不存在' });
     }
 
-    const pet = app.pets as Record<string, unknown> | null;
+    const pet = (app as any).pets as Record<string, unknown> | null;
     if (pet?.fosterer_id !== req.userId) {
       return res.status(403).json({ success: false, error: '无权操作此申请' });
     }
