@@ -2,15 +2,15 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
-import authRoutes from './routes/auth';
-import petsRoutes from './routes/pets';
-import applicationsRoutes from './routes/applications';
-import messagesRoutes from './routes/messages';
-import profileRoutes from './routes/profile';
-import favoritesRoutes from './routes/favorites';
-import chatRoutes from './routes/chat';
-import uploadRoutes from './routes/upload';
-import adminRoutes from './routes/admin';
+import authRoutes from '../server/routes/auth.js';
+import petsRoutes from '../server/routes/pets.js';
+import applicationsRoutes from '../server/routes/applications.js';
+import messagesRoutes from '../server/routes/messages.js';
+import profileRoutes from '../server/routes/profile.js';
+import favoritesRoutes from '../server/routes/favorites.js';
+import chatRoutes from '../server/routes/chat.js';
+import uploadRoutes from '../server/routes/upload.js';
+import adminRoutes from '../server/routes/admin.js';
 
 dotenv.config();
 
