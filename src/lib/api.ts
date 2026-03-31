@@ -1,11 +1,9 @@
 import { Capacitor } from '@capacitor/core';
 
-// 在浏览器端使用相对路径 /api (Vite 代理处理)
-// 在移动端 (Capacitor) 必须使用包含物理物理 IP 的完整 URL, 否则会请求到手机本地
-// 强行锁定后端物理 IP 地址，彻底避免被 localhost 或 https:// 劫持
-// 手机浏览器测试通过的地址是 192.168.2.6:3001, 这里保持一致
+// 🚀 动态识别后端链路
+// 当在手机 App (Native) 运行时使用全量部署 URL，浏览器网页运行时直接使用相对路径 /api
 const API_BASE = Capacitor.isNativePlatform()
-  ? 'http://192.168.2.6:3001/api'
+  ? 'https://kindredpaws.pages.dev/api'
   : '/api';
 
 console.log(`[API_BASE] 当前使用的后端链路: "${API_BASE}"`);
