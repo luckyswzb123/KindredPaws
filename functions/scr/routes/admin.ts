@@ -34,14 +34,81 @@ async function fetchUserProfile(id: string) {
   return data;
 }
 
+async function listAllAuthUsers() {
+  const perPage = 100;
+  let page = 1;
+  const allUsers: any[] = [];
+
+  while (true) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+
+    if (error) {
+      throw error;
+    }
+
+    const users = data?.users || [];
+    allUsers.push(...users);
+
+    if (users.length < perPage) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return allUsers;
+}
+
+async function buildAdminUsers() {
+  const [authUsers, profileResult] = await Promise.all([
+    listAllAuthUsers(),
+    supabaseAdmin.from('user_profiles').select(USER_COLUMNS),
+  ]);
+
+  if (profileResult.error) {
+    throw profileResult.error;
+  }
+
+  const profiles = profileResult.data || [];
+  const profileMap = new Map(profiles.map((profile: any) => [profile.id, profile]));
+  const merged = authUsers.map((authUser: any) => {
+    const profile = profileMap.get(authUser.id);
+    const metadata = authUser.user_metadata || {};
+
+    return {
+      id: authUser.id,
+      name: profile?.name || metadata.name || authUser.email || '',
+      email: profile?.email || authUser.email || '',
+      avatar_url: profile?.avatar_url || metadata.avatar_url || '',
+      location: profile?.location || metadata.location || '',
+      phone: profile?.phone || metadata.phone || '',
+      is_admin: Boolean(profile?.is_admin),
+      created_at: profile?.created_at || authUser.created_at || null,
+      updated_at: profile?.updated_at || authUser.updated_at || null,
+    };
+  });
+
+  const mergedIds = new Set(merged.map((user: any) => user.id));
+  const profileOnlyUsers = profiles.filter((profile: any) => !mergedIds.has(profile.id));
+  const users = [...merged, ...profileOnlyUsers];
+
+  users.sort((a: any, b: any) => {
+    const aTime = new Date(a.created_at || 0).getTime();
+    const bTime = new Date(b.created_at || 0).getTime();
+    return bTime - aTime;
+  });
+
+  return users;
+}
+
 router.get('/stats', async (c) => {
   try {
-    const [{ count: petsCount }, { count: pendingCount }, { count: approvedCount }, { count: usersCount }] =
+    const [users, { count: petsCount }, { count: pendingCount }, { count: approvedCount }] =
       await Promise.all([
+        buildAdminUsers(),
         supabaseAdmin.from('pets').select('*', { count: 'exact', head: true }),
         supabaseAdmin.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'reviewing'),
         supabaseAdmin.from('applications').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-        supabaseAdmin.from('user_profiles').select('*', { count: 'exact', head: true }),
       ]);
 
     return c.json({
@@ -50,7 +117,7 @@ router.get('/stats', async (c) => {
         pets: petsCount || 0,
         pending: pendingCount || 0,
         approved: approvedCount || 0,
-        users: usersCount || 0,
+        users: users.length,
       },
     });
   } catch (err) {
@@ -61,15 +128,7 @@ router.get('/stats', async (c) => {
 
 router.get('/users', async (c) => {
   try {
-    const { data, error } = await supabaseAdmin
-      .from('user_profiles')
-      .select(USER_COLUMNS)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      throw error;
-    }
-
+    const data = await buildAdminUsers();
     return c.json({ success: true, data });
   } catch (err) {
     console.error('Admin users error:', err);

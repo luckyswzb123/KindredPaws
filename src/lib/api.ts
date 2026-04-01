@@ -1,14 +1,13 @@
 import { Capacitor } from '@capacitor/core';
 
-// 🚀 动态识别后端链路
-// 当在手机 App (Native) 运行时使用全量部署 URL，浏览器网页运行时直接使用相对路径 /api
 const API_BASE = Capacitor.isNativePlatform()
   ? 'https://kindredpaws.pages.dev/api'
   : '/api';
 
-console.log(`[API_BASE] 当前使用的后端链路: "${API_BASE}"`);
+const REQUEST_TIMEOUT_MS = 15000;
 
-// ─── Token 管理 ───────────────────────────────────────────────
+console.log(`[API_BASE] Using backend: "${API_BASE}"`);
+
 export function getToken(): string | null {
   return localStorage.getItem('kp_access_token');
 }
@@ -33,7 +32,26 @@ export function setStoredUser(user: UserProfile): void {
   localStorage.setItem('kp_user', JSON.stringify(user));
 }
 
-// ─── HTTP 基础封装 ─────────────────────────────────────────────
+async function fetchWithTimeout(
+  input: string,
+  init: RequestInit = {},
+  timeoutMs = REQUEST_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      throw new Error('请求超时，请检查网络后重试');
+    }
+    throw err;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -43,72 +61,77 @@ async function request<T>(
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  if (token) headers.Authorization = `Bearer ${token}`;
 
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+    res = await fetchWithTimeout(`${API_BASE}${path}`, { ...options, headers });
   } catch (err: any) {
     console.error(`[FETCH ERROR] URL: ${API_BASE}${path}`, err);
-    throw new Error('网络请求失败，请检查后端服务是否正在运行。');
+    throw new Error(err?.message || '网络请求失败，请检查网络后重试');
   }
 
-  // Auto-refresh on 401
   if (res.status === 401) {
     const refreshToken = localStorage.getItem('kp_refresh_token');
     if (refreshToken) {
       const refreshed = await tryRefresh(refreshToken);
       if (refreshed) {
-        headers['Authorization'] = `Bearer ${getToken()}`;
-        const retryRes = await fetch(`${API_BASE}${path}`, { ...options, headers });
+        headers.Authorization = `Bearer ${getToken()}`;
+        const retryRes = await fetchWithTimeout(`${API_BASE}${path}`, { ...options, headers });
         const retryData = await retryRes.json().catch(() => ({}));
         return retryData;
       }
     }
+
     clearToken();
     window.location.href = '/login';
-    throw new Error('未登录');
+    throw new Error('登录状态已失效，请重新登录');
   }
 
-  // Read response as text first, to handle empty bodies or HTML error pages
   const textResponse = await res.text();
   let data: any;
+
   try {
     data = textResponse ? JSON.parse(textResponse) : {};
-  } catch (e: any) {
+  } catch {
     const parseErrorMsg = `[JSON PARSE ERROR]\nStatus: ${res.status}\nURL: ${res.url}\nContent: ${textResponse.substring(0, 100)}`;
     alert(parseErrorMsg);
+
     if (!res.ok) {
-      throw new Error(`服务器返回了无效的格式 (${res.status}): 可能后端服务没启动或配置有误。`);
+      throw new Error(`服务返回了无效响应 (${res.status})，请稍后重试`);
     }
-    throw new Error('解析 JSON 失败');
+
+    throw new Error('响应解析失败');
   }
 
   if (!res.ok) {
     throw new Error(data.error || `请求失败 (${res.status})`);
   }
+
   return data;
 }
 
 async function tryRefresh(refreshToken: string): Promise<boolean> {
   try {
-    const res = await fetch(`${API_BASE}/auth/refresh`, {
+    const res = await fetchWithTimeout(`${API_BASE}/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
     const data = await res.json();
+
     if (data.success && data.data?.access_token) {
       setToken(data.data.access_token);
       return true;
     }
+
     return false;
   } catch {
     return false;
   }
 }
 
-// ─── 类型定义 ─────────────────────────────────────────────────
 export interface UserProfile {
   id: string;
   name: string;
@@ -178,17 +201,18 @@ export interface ApiMessage {
   type: 'notification' | 'adoption' | 'interaction';
 }
 
-// ─── Auth API ─────────────────────────────────────────────────
 export const authApi = {
   async login(email: string, password: string) {
     const res = await request<any>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
+
     if (res.success && res.data?.session?.access_token) {
       setToken(res.data.session.access_token, res.data.session.refresh_token);
       setStoredUser(res.data.user);
     }
+
     return res;
   },
 
@@ -197,10 +221,12 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify({ email, password, name }),
     });
+
     if (res.success && res.data?.session?.access_token) {
       setToken(res.data.session.access_token, res.data.session.refresh_token);
       setStoredUser(res.data.user);
     }
+
     return res;
   },
 
@@ -213,7 +239,6 @@ export const authApi = {
   },
 };
 
-// ─── Pets API ─────────────────────────────────────────────────
 export const petsApi = {
   async list(params?: {
     type?: string;
@@ -225,11 +250,13 @@ export const petsApi = {
     limit?: number;
   }) {
     const qs = new URLSearchParams();
+
     if (params) {
       Object.entries(params).forEach(([k, v]) => {
         if (v !== undefined && v !== '') qs.set(k, String(v));
       });
     }
+
     const query = qs.toString() ? `?${qs}` : '';
     return request<any>(`/pets${query}`);
   },
@@ -254,7 +281,6 @@ export const petsApi = {
   },
 };
 
-// ─── Applications API ─────────────────────────────────────────
 export const applicationsApi = {
   async submit(data: {
     pet_id: string;
@@ -293,7 +319,6 @@ export const applicationsApi = {
   },
 };
 
-// ─── Messages API ─────────────────────────────────────────────
 export const messagesApi = {
   async list(type?: string) {
     const query = type && type !== 'all' ? `?type=${type}` : '';
@@ -313,7 +338,6 @@ export const messagesApi = {
   },
 };
 
-// ─── Profile API ──────────────────────────────────────────────
 export const profileApi = {
   async get() {
     return request<any>('/profile');
@@ -342,7 +366,6 @@ export const profileApi = {
   },
 };
 
-// ─── Favorites API ────────────────────────────────────────────
 export const favoritesApi = {
   async list() {
     return request<any>('/favorites');
@@ -357,7 +380,6 @@ export const favoritesApi = {
   },
 };
 
-// ─── Chat API ─────────────────────────────────────────────────
 export const chatApi = {
   async get(messageId: string) {
     return request<any>(`/chat/${messageId}`);
