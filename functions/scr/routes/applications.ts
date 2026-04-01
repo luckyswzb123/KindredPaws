@@ -1,29 +1,11 @@
 import { Hono } from 'hono';
-import { supabaseAdmin } from '../../lib/supabase.js';
+import { supabaseAdmin } from '../lib/supabase.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = new Hono();
 
-/**
- * --- 认证中间件 ---
- */
-const requireAuth = async (c: any, next: any) => {
-  const authHeader = c.req.header('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return c.json({ success: false, error: '请先登录' }, 401);
-  }
-  const token = authHeader.split(' ');
-  const { data, error } = await supabaseAdmin.auth.getUser(token);
-  if (error || !data.user) {
-    return c.json({ success: false, error: '登录失效' }, 401);
-  }
-  c.set('userId', data.user.id);
-  await next();
-};
-
-// 应用认证
 router.use('*', requireAuth);
 
-// POST /api/applications - 提交申请
 router.post('/', async (c) => {
   const userId = c.get('userId');
   const body = await c.req.json();
@@ -38,7 +20,6 @@ router.post('/', async (c) => {
   }
 
   try {
-    // 1. 检查重复申请
     const { data: existing } = await supabaseAdmin
       .from('applications')
       .select('id')
@@ -50,19 +31,22 @@ router.post('/', async (c) => {
       return c.json({ success: false, error: '您已经申请过这只宠物，请勿重复提交' }, 409);
     }
 
-    // 2. 获取宠物信息
     const { data: pet } = await supabaseAdmin
       .from('pets')
       .select('name, breed, age, image_url, fosterer_id')
       .eq('id', pet_id)
       .single();
 
-    // 3. 插入申请
     const { data, error } = await supabaseAdmin
       .from('applications')
       .insert({
-        pet_id, applicant_id: userId, type, status: 'reviewing',
-        applicant_name, applicant_phone, applicant_address,
+        pet_id,
+        applicant_id: userId,
+        type,
+        status: 'reviewing',
+        applicant_name,
+        applicant_phone,
+        applicant_address,
         applicant_wechat: applicant_wechat || null,
         applicant_bio: applicant_bio || null,
         housing_type: housing_type || null,
@@ -70,11 +54,13 @@ router.post('/', async (c) => {
         has_outdoor_space: has_outdoor_space ?? false,
         experience_level: experience_level || null,
       })
-      .select().single();
+      .select()
+      .single();
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
-    // 4. 发送通知给申请人
     await supabaseAdmin.from('messages').insert({
       user_id: userId,
       sender: '萌爪家园',
@@ -86,7 +72,6 @@ router.post('/', async (c) => {
       type: 'adoption',
     });
 
-    // 5. 通知发布者 (如果不是系统发布的)
     if (pet?.fosterer_id && pet.fosterer_id !== userId) {
       await supabaseAdmin.from('messages').insert({
         user_id: pet.fosterer_id,
@@ -119,7 +104,6 @@ router.post('/', async (c) => {
   }
 });
 
-// GET /api/applications/my - 我的申请记录
 router.get('/my', async (c) => {
   const userId = c.get('userId');
   const { type, status } = c.req.query();
@@ -138,7 +122,9 @@ router.get('/my', async (c) => {
     if (status) query = query.eq('status', status);
 
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     const apps = (data || []).map((a: any) => ({
       id: a.id,
@@ -160,9 +146,9 @@ router.get('/my', async (c) => {
   }
 });
 
-// GET /api/applications/received - 我收到的申请
 router.get('/received', async (c) => {
   const userId = c.get('userId');
+
   try {
     const { data: myPets } = await supabaseAdmin
       .from('pets')
@@ -170,9 +156,11 @@ router.get('/received', async (c) => {
       .eq('fosterer_id', userId)
       .eq('type', 'foster');
 
-    if (!myPets || myPets.length === 0) return c.json({ success: true, data: [] });
+    if (!myPets || myPets.length === 0) {
+      return c.json({ success: true, data: [] });
+    }
 
-    const petIds = myPets.map((p) => p.id);
+    const petIds = myPets.map((p: any) => p.id);
 
     const { data, error } = await supabaseAdmin
       .from('applications')
@@ -184,7 +172,9 @@ router.get('/received', async (c) => {
       .in('pet_id', petIds)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     const apps = (data || []).map((a: any) => ({
       id: a.id,
@@ -209,7 +199,6 @@ router.get('/received', async (c) => {
   }
 });
 
-// PATCH /api/applications/:id/status - 更新状态
 router.patch('/:id/status', async (c) => {
   const userId = c.get('userId');
   const id = c.req.param('id');
@@ -223,9 +212,12 @@ router.patch('/:id/status', async (c) => {
     const { data: app } = await supabaseAdmin
       .from('applications')
       .select('id, pet_id, applicant_id, type, pets(name, fosterer_id)')
-      .eq('id', id).single();
+      .eq('id', id)
+      .single();
 
-    if (!app) return c.json({ success: false, error: '申请记录不存在' }, 404);
+    if (!app) {
+      return c.json({ success: false, error: '申请记录不存在' }, 404);
+    }
 
     const pet = Array.isArray(app.pets) ? app.pets[0] : app.pets;
     if (pet?.fosterer_id !== userId) {
@@ -237,19 +229,21 @@ router.patch('/:id/status', async (c) => {
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', id);
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
-    // 通知申请人
-    const statusText = status === 'approved' ? '已通过' : '未通过';
+    const statusText = status === 'approved' ? '已通过' : status === 'rejected' ? '未通过' : '审核中';
+
     await supabaseAdmin.from('messages').insert({
       user_id: app.applicant_id,
       sender: '萌爪家园',
-      subject: `申请状态更新`,
+      subject: '申请状态已更新',
       preview: `您对 ${pet?.name} 的申请${statusText}。`,
       content: `您的申请状态已更新为：${statusText}。`,
       icon: 'bell',
       type: 'adoption',
-      is_read: false
+      is_read: false,
     });
 
     return c.json({ success: true });

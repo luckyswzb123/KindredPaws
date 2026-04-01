@@ -1,7 +1,23 @@
-import React, { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase.js';
 import { LogIn, Lock, Mail, Loader2, PawPrint } from 'lucide-react';
+import { adminApi } from '../lib/api';
+import { persistAdminSession } from '../lib/auth';
+
+function getLoginErrorMessage(error: any) {
+  const apiMessage = error?.response?.data?.error;
+  const message = error?.message || '';
+
+  if (apiMessage) {
+    return apiMessage;
+  }
+
+  if (message.includes('Failed to fetch') || message.includes('Network Error')) {
+    return '无法连接到后台登录服务，请确认本地 dev:functions 已启动，或检查网络后重试。';
+  }
+
+  return message || '登录失败，请检查输入后重试。';
+}
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -10,26 +26,29 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const response = await adminApi.login(email, password);
+      const payload = response.data;
 
-      if (authError) throw authError;
+      if (!payload?.success) {
+        setError(payload?.error || '登录失败，请检查输入后重试。');
+        return;
+      }
 
-      if (data.session) {
-        localStorage.setItem('kp_access_token', data.session.access_token);
-        // We'll trust the token for now, the backend will verify if it's REALLY an admin
-        navigate('/');
+      if (payload?.data?.session) {
+        persistAdminSession(payload.data.session, payload.data.user);
+        navigate('/', { replace: true });
+      } else {
+        setError('登录成功，但没有收到有效会话，请稍后重试。');
       }
     } catch (err: any) {
-      setError(err.message || '登录失败，请检查您的凭据');
+      console.error('Admin login failed:', err);
+      setError(getLoginErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -37,7 +56,6 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-[#FDF8F6] flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Decorative blobs */}
       <div className="absolute top-[-10%] right-[-5%] w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse" />
       <div className="absolute bottom-[-10%] left-[-5%] w-80 h-80 bg-orange-200/20 rounded-full blur-3xl" />
 
@@ -81,11 +99,11 @@ export default function Login() {
             </div>
           </div>
 
-          {error && (
+          {error ? (
             <div className="p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium border border-red-100 animate-shake">
               {error}
             </div>
-          )}
+          ) : null}
 
           <button
             type="submit"
@@ -103,9 +121,7 @@ export default function Login() {
           </button>
         </form>
 
-        <p className="text-center mt-10 text-gray-400 text-sm">
-          &copy; 2026 Kindred Paws Admin
-        </p>
+        <p className="text-center mt-10 text-gray-400 text-sm">&copy; 2026 Kindred Paws Admin</p>
       </div>
     </div>
   );

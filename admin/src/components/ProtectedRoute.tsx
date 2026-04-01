@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { supabase } from '../lib/supabase.js';
 import { Loader2 } from 'lucide-react';
+import { clearAdminSession } from '../lib/auth';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
@@ -13,35 +13,16 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const location = useLocation();
 
   useEffect(() => {
-    async function checkAuth() {
-      const { data: { session } } = await supabase.auth.getSession();
+    const token = localStorage.getItem('kp_access_token');
 
-      if (session) {
-        setAuthenticated(true);
-        localStorage.setItem('kp_access_token', session.access_token);
-      } else {
-        setAuthenticated(false);
-        localStorage.removeItem('kp_access_token');
-      }
-
-      setLoading(false);
+    if (token) {
+      setAuthenticated(true);
+    } else {
+      setAuthenticated(false);
+      clearAdminSession();
     }
 
-    checkAuth();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setAuthenticated(true);
-        localStorage.setItem('kp_access_token', session.access_token);
-      } else {
-        setAuthenticated(false);
-        localStorage.removeItem('kp_access_token');
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    setLoading(false);
   }, []);
 
   if (loading) {
@@ -53,7 +34,6 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!authenticated) {
-    // Redirect to login but save current location
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

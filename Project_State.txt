@@ -1,15 +1,65 @@
-已经大功告成！🎉
+项目当前状态
 
-你的萌爪家园 (Kindred Paws) 后端 API 已经完全通过 Cloudflare 加密 Secrets 方式安全上线，且彻底从 wrangler.toml 配置文件中移除了所有明文敏感信息。
+Kindred Paws 已统一运行在 Cloudflare Pages，前后端采用同站点部署：
 
-📊 当前系统状态
+- 前台静态资源由根目录 `dist/` 发布
+- 后端 API 由根目录 `functions/` 下的 Pages Functions 提供
+- API 入口文件为 `functions/api/[[path]].js`
 
-为防止移动网络限制,前后端都采用pages部署，地址：https://666ff461.kindredpaws.pages.dev
-//后端地址（暂时保留）：https://kindredpaws-api.luckyswzb123.workers.dev/api
-安全等级：高（已启用加密 Secrets）。
-前端页面：https://kindredpaws.pages.dev/（已配置指向该线上后端）。
-📝 本次任务总结
-框架转换：将 Express 路由全线重构为 Hono，确保其在 Cloudflare Workers 环境下高性能运行。
-前后端联通：更新前端 API_BASE 并完成了生产环境的构建与静态发布。
-安全加固：通过多步“过渡部署”技巧，成功解决了变量命名冲突，将 Supabase 和 R2 的敏感配置安全地迁移到了 Cloudflare Secrets 中。
-现在你的线上服务已经进入了极其稳定且安全的状态。还有什么其他我可以为你效劳的吗？
+当前线上地址
+
+- 前台页面：https://kindredpaws.pages.dev/
+- 后端接口：https://kindredpaws.pages.dev/api
+- 健康检查：https://kindredpaws.pages.dev/api/health
+
+当前本地开发方式
+
+- 用户端前端：根目录执行 `npm run dev`
+- 后台管理前端：根目录执行 `npm run dev:admin`
+- 本地 Functions API：根目录先执行 `npm run build`，再执行 `npm run dev:functions`
+
+后台本地联调说明
+
+- 后台地址默认是 `http://localhost:5173`
+- 后台开发环境通过 Vite 代理访问本地 API
+- 代理关系为 `http://localhost:5173/api -> http://127.0.0.1:8788/api`
+- 后台登录现在走项目自身 `/api/auth/login`
+- 后台不再依赖浏览器直接连接 Supabase 登录
+
+当前项目结构重点
+
+- 用户端代码位于 `src/`
+- 后台管理代码位于 `admin/`
+- 后端路由位于 `functions/scr/routes/`
+- 管理员鉴权中间件位于 `functions/scr/middleware/auth.ts`
+- 数据库初始化脚本位于 `supabase/schema.sql`
+
+迁移结果
+
+- 已完成从旧 `kindredpaws-api` 独立后端到 `functions/` 的迁移
+- 本地旧 `kindredpaws-api` 目录已删除
+- 项目运行不再依赖独立 `workers.dev` 后端
+
+当前已完成功能
+
+- 统一 Pages Functions API 路由入口
+- 统一认证与管理员权限校验
+- 后台用户管理支持增删改查
+- 后台宠物上下线接口已补齐
+- 后台审批接口已接入当前 API
+- Android Capacitor 配置已调整为发布友好模式
+
+Cloudflare 部署说明
+
+- 当前只需要保留 `kindredpaws` 这个 Pages 项目
+- `functions/` 会随 Pages 部署自动一起发布
+- 常用部署命令：
+  `npm run build`
+  `npx wrangler pages deploy dist --project-name kindredpaws --branch main --commit-dirty=true`
+
+注意事项
+
+- 后台使用前，管理员账号必须在 `user_profiles.is_admin` 中为 `true`
+- 发布前建议至少执行一次：
+  - 根目录 `npm run build`
+  - `admin` 目录 `npm run build`

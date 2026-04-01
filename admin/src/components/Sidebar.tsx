@@ -1,8 +1,9 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, PawPrint, FileText, Settings, LogOut } from 'lucide-react';
+import { FileText, LayoutDashboard, LogOut, PawPrint, Settings, Users } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { supabase } from '../lib/supabase.js';
+import { adminApi } from '../lib/api';
+import { clearAdminSession } from '../lib/auth';
 
 interface SidebarItemProps {
   to: string;
@@ -15,10 +16,10 @@ const SidebarItem = ({ to, icon, label }: SidebarItemProps) => (
     to={to}
     className={({ isActive }) =>
       cn(
-        "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
+        'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group',
         isActive
-          ? "bg-accent text-white business-shadow ring-4 ring-accent/10"
-          : "text-on-surface-variant hover:bg-surface-container hover:text-accent"
+          ? 'bg-accent text-white business-shadow ring-4 ring-accent/10'
+          : 'text-on-surface-variant hover:bg-surface-container hover:text-accent'
       )
     }
   >
@@ -39,6 +40,7 @@ export default function Sidebar() {
 
       <nav className="flex-grow space-y-2">
         <SidebarItem to="/" icon={<LayoutDashboard size={20} />} label="仪表盘" />
+        <SidebarItem to="/users" icon={<Users size={20} />} label="用户管理" />
         <SidebarItem to="/pets" icon={<PawPrint size={20} />} label="宠物管理" />
         <SidebarItem to="/applications" icon={<FileText size={20} />} label="领养审批" />
       </nav>
@@ -48,8 +50,12 @@ export default function Sidebar() {
         <button
           onClick={async () => {
             if (confirm('确定要退出管理系统吗？')) {
-              await supabase.auth.signOut();
-              localStorage.removeItem('kp_access_token');
+              try {
+                await adminApi.logout();
+              } catch (error) {
+                console.warn('Admin logout request failed:', error);
+              }
+              clearAdminSession();
               window.location.href = '/login';
             }
           }}

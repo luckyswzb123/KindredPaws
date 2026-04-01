@@ -1,6 +1,10 @@
 import axios from 'axios';
+import { clearAdminSession } from './auth';
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE =
+  import.meta.env.VITE_API_BASE ||
+  import.meta.env.VITE_API_BASE_URL ||
+  '/api';
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -15,9 +19,35 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      clearAdminSession();
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export const adminApi = {
+  // Auth
+  login: (email: string, password: string) => api.post('/auth/login', { email, password }),
+  logout: () => api.post('/auth/logout'),
+
   // Stats
   getStats: () => api.get('/admin/stats'),
+
+  // Users
+  getUsers: () => api.get('/admin/users'),
+  createUser: (data: any) => api.post('/admin/users', data),
+  updateUser: (id: string, data: any) => api.put(`/admin/users/${id}`, data),
+  updateUserAdmin: (id: string, is_admin: boolean) =>
+    api.patch(`/admin/users/${id}/admin`, { is_admin }),
+  deleteUser: (id: string) => api.delete(`/admin/users/${id}`),
 
   // Pets
   getPets: () => api.get('/admin/pets'),

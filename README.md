@@ -1,113 +1,235 @@
-# 萌爪家园 (Kindred Paws) - 宠物领养全栈平台
+# Kindred Paws
 
-![Kindred Paws Banner](https://images.unsplash.com/photo-1548191265-cc70d3d45ba1?w=1200&q=80)
+Kindred Paws 是一个宠物领养与寄养平台，包含：
 
-**萌爪家园** 是一个致力于流浪动物领养与救助的现代化全栈平台。该项目包含面向普通用户的 **移动端 Web App** 和面向管理员的 **PC 端后台管理系统**。
+- 用户端 Web / App 前端
+- 管理后台前端
+- 基于 Cloudflare Pages Functions 的同站点 API
 
-## 🌟 项目亮点
+当前项目已经完成从旧 `kindredpaws-api` 独立后端到 `functions/` 的迁移，生产环境统一运行在 Cloudflare Pages。
 
--   **双端隔离架构**：独立的 C 端（用户）与 B 端（管理）工程，共享同一套 API 逻辑。
--   **现代设计语言**：遵循一致的视觉规范，包含毛玻璃效果（Glassmorphism）、微交互动效和响应式布局。
--   **云存储集成**：深度接入 **Cloudflare R2** 解决宠物高清大图存储需求。
--   **实时鉴权系统**：基于 **Supabase Auth** 实现双端统一认证与管理员权限隔离。
+## 当前架构
 
----
+- 前台站点：`src/` + 根目录 Vite 构建
+- 后台管理：`admin/` 独立 Vite + React 工程
+- 后端接口：`functions/` 下的 Cloudflare Pages Functions
+- API 入口：[functions/api/[[path]].js](/e:/Project/Kindred.Paws/functions/api/[[path]].js)
+- 认证与管理员校验：
+  - 普通登录：`/api/auth/login`
+  - 管理接口：`/api/admin/*`
+  - 管理员鉴权中间件：[functions/scr/middleware/auth.ts](/e:/Project/Kindred.Paws/functions/scr/middleware/auth.ts)
 
-## 🛠️ 技术栈
+生产地址：
 
-| 模块  | 技术选型 |
-| :--- | :--- |
-| **前端框架** | React 19 + Vite 6 + TypeScript |
-| **样式方案** | Tailwind CSS 4.0 + Motion (framer-motion) |
-| **图标/UI** | Lucide React |
-| **状态/认证** | Supabase Auth |
-| **后端服务** | Node.js + Express + TSX (Runtime) |
-| **数据库** | Supabase (PostgreSQL) |
-| **对象存储** | Cloudflare R2 (S3 兼容协议) |
+- 前台：`https://kindredpaws.pages.dev/`
+- API：`https://kindredpaws.pages.dev/api`
+- 健康检查：`https://kindredpaws.pages.dev/api/health`
 
----
-
-## 📂 项目结构
+## 目录结构
 
 ```text
 Kindred.Paws/
-├── src/                # [C端] 移动端移动端 Web App (React)
-├── admin/              # [B端] PC端后台管理系统 (React)
-├── server/             # [后端] Express API 路由与业务逻辑
-│   ├── routes/         # API 路由逻辑 (auth, admin, upload, pets 等)
-│   ├── middleware/     # 核心中间件 (鉴权, 文件处理)
-│   ├── lib/            # 第三方服务初始化 (Supabase, R2)
-├── supabase/           # 数据库定义
-│   └── schema.sql      # 完整的表结构、触发器与 RLS 策略
-└── .env                # 环境变量配置文件
+├── src/                    # 用户端前端
+├── admin/                  # 后台管理前端
+├── functions/              # Cloudflare Pages Functions 后端
+│   ├── api/[[path]].js     # Pages Functions 入口
+│   └── scr/
+│       ├── lib/            # Supabase / polyfills 等
+│       ├── middleware/     # 认证中间件
+│       └── routes/         # auth / admin / pets / profile 等路由
+├── supabase/               # 数据库 schema 与初始化脚本
+├── android/                # Capacitor Android 工程
+├── dist/                   # 前台构建产物
+└── capacitor.config.ts     # Capacitor 配置
 ```
 
----
+## 技术栈
 
-## 🚀 快速开始
+- 前端：React 19 + Vite + TypeScript
+- 样式：Tailwind CSS 4
+- 动效：Motion / Framer Motion
+- 图标：Lucide React
+- 后端：Hono + Cloudflare Pages Functions
+- 数据库与认证：Supabase
+- 对象存储：Cloudflare R2
+- 移动端封装：Capacitor
 
-### 1. 克隆并安装依赖
-```bash
-git clone <repository-url>
-cd Kindred.Paws
-npm install
-cd admin && npm install
-```
+## 环境变量
 
-### 2. 配置环境变量
-在根目录创建 `.env` 文件，并填入以下内容：
+根目录 `.env` 需要至少包含：
+
 ```env
-# Supabase
-SUPABASE_URL=你的项目URL
-SUPABASE_ANON_KEY=你的Anon密钥
-SUPABASE_SERVICE_ROLE_KEY=你的ServiceRole密钥
+SUPABASE_URL=你的 Supabase 项目地址
+SUPABASE_ANON_KEY=你的 Supabase Anon Key
+SUPABASE_SERVICE_ROLE_KEY=你的 Supabase Service Role Key
 
-# Cloudflare R2
-R2_S3_API_URL=你的R2公网端点
-R2_ACCESS_KEY_ID=你的AccessID
-R2_SECRET_ACCESS_KEY=你的SecretKey
-R2_BUCKET_NAME=你的Bucket名
-R2_PUBLIC_DOMAIN=你的R2加速域名
-
-# Servers
-PORT=3001
-FRONTEND_URL=http://localhost:3000
+R2_S3_API_URL=你的 R2 S3 API 地址
+R2_ACCESS_KEY_ID=你的 R2 Access Key ID
+R2_SECRET_ACCESS_KEY=你的 R2 Secret Access Key
+R2_BUCKET_NAME=你的 R2 Bucket 名称
+R2_PUBLIC_DOMAIN=你的 R2 公网访问域名
 ```
 
-### 3. 初始化数据库
-1.  登录 [Supabase 控制台](https://supabase.com)。
-2.  进入 **SQL Editor**，执行 `supabase/schema.sql` 中的所有脚本。
-3.  **开启管理员权限**（可选）：
-    ```sql
-    UPDATE user_profiles SET is_admin = TRUE WHERE email = 'YOUR_ADMIN_EMAIL';
-    ```
+说明：
 
-### 4. 运行项目
-在项目根目录执行：
+- `functions/` 在本地和 Pages 上都会读取这些变量
+- `admin` 开发环境默认通过 `/api` 代理访问本地 Functions
+- 后台登录现在走你自己的 `/api/auth/login`，不再依赖浏览器直接连接 Supabase 登录
+
+## 数据库初始化
+
+在 Supabase SQL Editor 中执行：
+
+- [schema.sql](/e:/Project/Kindred.Paws/supabase/schema.sql)
+
+如果要授予第一个管理员账号权限，可执行：
+
+```sql
+update public.user_profiles
+set is_admin = true
+where email = 'YOUR_ADMIN_EMAIL';
+```
+
+## 本地开发
+
+### 1. 安装依赖
+
 ```bash
-npm run dev:all
+npm install
+cd admin
+npm install
 ```
-这会同时启动以下三个服务：
--   **用户端 App**: [http://localhost:3000](http://localhost:3000)
--   **后台管理系统**: [http://localhost:5173](http://localhost:5173) (视 Vite 端口而定)
--   **后端服务 API**: [http://localhost:3001](http://localhost:3001)
 
----
+### 2. 启动用户端前端
 
-## 🛡️ 鉴权机制
+项目根目录：
 
--   **双重校验**：不仅在前端通过 `ProtectedRoute` 拦截 unauthorized 访问，后端针对 `/api/admin/*` 路径强制使用 `requireAdminAuth` 中间件，二次校验数据库 `user_profiles` 表中的 `is_admin` 标记。
--   **JWT 验证**：无状态认证，Session 由 Supabase 托管。
+```bash
+npm run dev
+```
 
----
+默认地址：
 
-## 📝 开发规范
--   **完全解耦**：管理后台代码放置于 `/admin`，不要修改 `src/` 下的代码，以免影响移动端。
--   **组件复用**：通用排版、配色逻辑优先复用根目录的 Tailwind 配置。
+- `http://localhost:3000`
 
----
+### 3. 启动后台管理前端
 
-## 🤝 贡献与支持
-如果你发现 Bug 或有改进建议，欢迎提交 Issue。
+项目根目录：
 
-**Kindred Paws - 让每一份爱都有归宿。**
+```bash
+npm run dev:admin
+```
+
+默认地址：
+
+- `http://localhost:5173`
+
+### 4. 启动本地 Functions API
+
+项目根目录：
+
+```bash
+npm run build
+npm run dev:functions
+```
+
+默认地址：
+
+- `http://127.0.0.1:8788`
+
+后台开发环境下会通过 Vite 代理自动转发：
+
+- `http://localhost:5173/api` -> `http://127.0.0.1:8788/api`
+
+### 5. 本地联调推荐组合
+
+如果你要完整使用本地后台管理，请同时启动：
+
+```bash
+npm run dev:functions
+npm run dev:admin
+```
+
+如果你要同时开发前台，也可以再开一个终端执行：
+
+```bash
+npm run dev
+```
+
+## 构建
+
+前台构建：
+
+```bash
+npm run build
+```
+
+后台构建：
+
+```bash
+cd admin
+npm run build
+```
+
+## Cloudflare Pages 部署
+
+前台与 Functions 使用同一个 Pages 项目部署。
+
+常用命令：
+
+```bash
+npm run build
+npx wrangler pages deploy dist --project-name kindredpaws --branch main --commit-dirty=true
+```
+
+说明：
+
+- `dist/` 是前台静态产物
+- `functions/` 会被 Pages 自动识别并一起部署
+- 项目不再依赖旧的 `workers.dev` 独立后端
+
+## 后台登录与权限
+
+当前后台登录链路：
+
+- 登录页调用 `/api/auth/login`
+- 登录成功后保存 `kp_access_token`
+- 访问 `/api/admin/*` 时自动附带 Bearer Token
+- 后端通过 `requireAdminAuth` 校验：
+  - token 是否有效
+  - `user_profiles.is_admin` 是否为 `true`
+
+如果后台提示无权限，请先确认该账号在 Supabase 中已经被设为管理员。
+
+## Android 打包
+
+Capacitor 当前已调整为发布友好模式：
+
+- Android 不再依赖局域网 `server.url`
+- 原生端 API 使用线上 `https://kindredpaws.pages.dev/api`
+
+同步 Android 工程：
+
+```bash
+npm run build
+npx cap sync android
+```
+
+之后使用 Android Studio 打包 APK 或 AAB。
+
+## 当前状态
+
+- 旧 `kindredpaws-api` 目录已迁移并删除
+- API 已统一到 `functions/`
+- 后台用户管理已支持增删改查
+- 宠物上下线接口已补齐
+- 后台登录已改为走项目自身 `/api/auth/login`
+
+## 开发建议
+
+- 用户端改动优先在 `src/`
+- 后台管理改动优先在 `admin/`
+- 后端接口统一放在 `functions/scr/routes/`
+- 发布前至少跑一次：
+  - 根目录 `npm run build`
+  - `admin` 目录 `npm run build`

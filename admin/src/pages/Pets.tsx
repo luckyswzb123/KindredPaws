@@ -96,10 +96,14 @@ export default function Pets() {
   const togglePetStatus = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === 'none' ? 'new' : 'none';
     try {
-      await adminApi.togglePetStatus(id, newStatus);
+      const res = await adminApi.togglePetStatus(id, newStatus);
+      if (!res.data.success) {
+        alert(res.data.error || '操作失败');
+        return;
+      }
       fetchPets();
-    } catch (err) {
-      alert('操作失败');
+    } catch (err: any) {
+      alert(err?.response?.data?.error || err?.message || '操作失败');
     }
   };
 

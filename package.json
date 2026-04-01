@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "dev:server": "tsx watch server/index.ts",
+    "dev:functions": "npx wrangler pages dev dist --port 8788",
     "dev:admin": "cd admin && npm run dev",
-    "dev:all": "concurrently \"npm run dev:server\" \"npm run dev\" \"npm run dev:admin\"",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:admin\" \"npm run dev:functions\"",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
